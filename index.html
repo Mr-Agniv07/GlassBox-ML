@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Glassbox ML — watch machine learning algorithms actually learn</title>
+<style>
+  :root{
+    --bg:#0b0f17; --panel:#121826; --panel2:#0e1320; --line:#1e2840;
+    --ink:#e7ecf5; --muted:#8a97b1; --accent:#5eead4; --accent2:#7c9cff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.65 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent2);text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+  /* nav */
+  nav{display:flex;align-items:center;justify-content:space-between;
+    padding:18px 0;border-bottom:1px solid var(--line)}
+  .logo{font-weight:800;font-size:18px;letter-spacing:-.01em}
+  .logo span{color:var(--accent)}
+  nav .links{display:flex;gap:20px;font-size:14px;color:var(--muted)}
+  nav .links a{color:var(--muted)} nav .links a:hover{color:var(--ink)}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:34px;align-items:center;
+    padding:64px 0 40px}
+  @media(max-width:840px){.hero{grid-template-columns:1fr;gap:24px;padding:44px 0 24px}}
+  .hero h1{font-size:44px;line-height:1.1;margin:0 0 16px;letter-spacing:-.02em}
+  .hero h1 .g{background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:17px;color:var(--muted);margin:0 0 26px;max-width:46ch}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid var(--line)}
+  .btn.primary{background:var(--accent);color:#06231f;border-color:var(--accent)}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.ghost{background:#141c2e;color:var(--ink)} .btn.ghost:hover{border-color:var(--accent2)}
+  .heroCanvas{background:var(--panel2);border:1px solid var(--line);border-radius:14px;width:100%;display:block}
+  .heroCap{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+
+  /* promises */
+  .promises{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:18px 0 10px}
+  @media(max-width:840px){.promises{grid-template-columns:1fr}}
+  .promise{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .promise .ic{font-size:22px}
+  .promise h3{margin:8px 0 6px;font-size:16px}
+  .promise p{margin:0;color:var(--muted);font-size:14px}
+
+  /* curriculum */
+  .sec{padding:46px 0 10px}
+  .sec h2{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+  .sec .lead{color:var(--muted);margin:0 0 26px}
+  .level{margin:0 0 30px}
+  .level .lh{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+  .level .lnum{font-size:13px;font-weight:700;color:#06231f;background:var(--accent);
+    padding:2px 10px;border-radius:999px}
+  .level .lname{font-size:18px;font-weight:700}
+  .level .lblurb{color:var(--muted);font-size:14px}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:840px){.cards{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;
+    display:flex;flex-direction:column;gap:6px;min-height:104px;transition:.15s;position:relative}
+  a.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .card .nm{font-weight:700;font-size:15px}
+  .card .ds{color:var(--muted);font-size:13px;flex:1}
+  .badge{position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;
+    padding:2px 8px;border-radius:999px}
+  .badge.live{background:#0e2b27;color:var(--accent);border:1px solid #1c4a43}
+  .badge.soon{background:#1a2032;color:var(--muted);border:1px solid var(--line)}
+  .card.soon{opacity:.62}
+  .card .go{font-size:13px;color:var(--accent);font-weight:600}
+
+  footer{border-top:1px solid var(--line);margin-top:50px;padding:26px 0;color:var(--muted);font-size:13px;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <div class="logo">Glass<span>box</span> ML</div>
+    <div class="links">
+      <a href="#curriculum">Curriculum</a>
+      <a href="linear-regression.html">Linear Regression</a>
+      <a href="logistic-regression.html">Logistic Regression</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <h1>Watch machine learning<br><span class="g">actually learn.</span></h1>
+      <p>Every algorithm, built from zero — no scikit-learn, no PyTorch. The math you read is the
+      math running on screen, animated step by step. The black box, made glass.</p>
+      <div class="cta">
+        <a class="btn primary" href="linear-regression.html">▶ Start with Linear Regression</a>
+        <a class="btn ghost" href="#curriculum">See the curriculum</a>
+      </div>
+    </div>
+    <div>
+      <canvas id="hero" class="heroCanvas" width="460" height="240"></canvas>
+      <div class="heroCap">↑ live: gradient descent fitting a line, on loop</div>
+    </div>
+  </section>
+
+  <!-- PROMISES -->
+  <section class="promises">
+    <div class="promise">
+      <div class="ic">⌨️</div>
+      <h3>From scratch</h3>
+      <p>Pure NumPy / vanilla JS. No ML libraries hiding the work — you see every line of the algorithm.</p>
+    </div>
+    <div class="promise">
+      <div class="ic">🎬</div>
+      <h3>Animated</h3>
+      <p>Watch it train: loss curves drop, boundaries rotate, clusters form. Scrub through any epoch.</p>
+    </div>
+    <div class="promise">
+      <div class="ic">✅</div>
+      <h3>Verified vs scikit-learn</h3>
+      <p>Each from-scratch model is benchmarked against the library — so you know it's the real thing.</p>
+    </div>
+  </section>
+
+  <!-- CURRICULUM -->
+  <section class="sec" id="curriculum">
+    <h2>The curriculum</h2>
+    <p class="lead">A path, not a catalogue — each level builds the intuition the next one needs.
+      <span id="progress" style="color:var(--accent);font-weight:600"></span></p>
+    <div id="levels"></div>
+  </section>
+
+  <footer>
+    <div>Glassbox ML — an open educational project. Built from scratch, on purpose.</div>
+    <div>Made with vanilla JS + Canvas · no build step</div>
+  </footer>
+
+</div>
+
+<script>
+/* ---------- curriculum data (add an algorithm = one entry) ---------- */
+const LEVELS = [
+  { n:1, name:"Foundations", blurb:"Linear models + the gradient-descent engine behind everything.",
+    algos:[
+      {nm:"Linear Regression",  ds:"Fit a line by gradient descent; watch residuals shrink.", file:"linear-regression.html"},
+      {nm:"Logistic Regression",ds:"A probability boundary that rotates into place.", file:"logistic-regression.html"},
+      {nm:"Gradient Descent",   ds:"The optimizer that powers it all, visualized on a loss surface."},
+    ]},
+  { n:2, name:"Distance & Geometry", blurb:"Learning from how close things are.",
+    algos:[
+      {nm:"k-Nearest Neighbors", ds:"Move a point; watch its k neighbors vote."},
+      {nm:"k-Means",             ds:"Centroids walk to their clusters, step by step."},
+      {nm:"PCA",                 ds:"Axes rotate to capture maximum variance."},
+    ]},
+  { n:3, name:"Probability", blurb:"Reasoning under uncertainty.",
+    algos:[
+      {nm:"Naive Bayes", ds:"Overlapping bell curves form a decision boundary."},
+    ]},
+  { n:4, name:"Trees", blurb:"Splitting the space into decisions.",
+    algos:[
+      {nm:"Decision Tree",  ds:"The feature space splits into rectangles, recursively."},
+      {nm:"Random Forest",  ds:"Many trees vote; watch variance melt away."},
+    ]},
+  { n:5, name:"Boosting", blurb:"Many weak learners, one strong model.",
+    algos:[
+      {nm:"AdaBoost",          ds:"Misclassified points grow heavier each round."},
+      {nm:"Gradient Boosting", ds:"Residuals shrink as each tree is added on top."},
+      {nm:"XGBoost",           ds:"The competition workhorse, built from its parts."},
+      {nm:"LightGBM",          ds:"Histogram-based boosting, leaf-wise growth."},
+    ]},
+];
+
+(function renderCurriculum(){
+  const host=document.getElementById('levels');
+  let live=0, total=0;
+  LEVELS.forEach(L=>{
+    const lvl=document.createElement('div'); lvl.className='level';
+    lvl.innerHTML=`<div class="lh">
+        <span class="lnum">Level ${L.n}</span>
+        <span class="lname">${L.name}</span>
+        <span class="lblurb">${L.blurb}</span>
+      </div>`;
+    const cards=document.createElement('div'); cards.className='cards';
+    L.algos.forEach(a=>{
+      total++;
+      const isLive=!!a.file; if(isLive) live++;
+      const badge=isLive?'<span class="badge live">LIVE</span>':'<span class="badge soon">SOON</span>';
+      const go=isLive?'<span class="go">Open exhibit →</span>':'';
+      const inner=`${badge}<div class="nm">${a.nm}</div><div class="ds">${a.ds}</div>${go}`;
+      let el;
+      if(isLive){ el=document.createElement('a'); el.href=a.file; el.className='card'; }
+      else      { el=document.createElement('div'); el.className='card soon'; }
+      el.innerHTML=inner; cards.appendChild(el);
+    });
+    lvl.appendChild(cards); host.appendChild(lvl);
+  });
+  document.getElementById('progress').textContent=`${live} of ${total} exhibits live.`;
+})();
+
+/* ---------- hero animation: a tiny linear-regression fit, looping ---------- */
+(function hero(){
+  const cv=document.getElementById('hero'), c=cv.getContext('2d');
+  const W=cv.width, H=cv.height, PAD=26;
+  const px=x=>PAD+x*(W-2*PAD), py=y=>(H-PAD)-y/2*(H-2*PAD);
+  let pts=[], w=0, b=0, t=0, hold=0;
+  function gen(){ pts=[]; for(let i=0;i<22;i++){const x=Math.random();
+    pts.push({x,y:Math.min(2,Math.max(0,1.3*x+0.35+(Math.random()-0.5)*0.45))});} w=0;b=0;t=0;hold=0; }
+  function step(){ const n=pts.length; let dw=0,db=0; for(const p of pts){const e=(w*p.x+b)-p.y; dw+=e*p.x; db+=e;}
+    w-=0.25*(2/n)*dw; b-=0.25*(2/n)*db; }
+  function draw(){
+    c.clearRect(0,0,W,H);
+    c.strokeStyle='#1e2840'; c.lineWidth=1; c.beginPath();
+    c.moveTo(PAD,H-PAD); c.lineTo(W-PAD,H-PAD); c.moveTo(PAD,PAD); c.lineTo(PAD,H-PAD); c.stroke();
+    c.strokeStyle='rgba(251,191,36,.30)'; c.lineWidth=1;
+    for(const p of pts){c.beginPath();c.moveTo(px(p.x),py(p.y));c.lineTo(px(p.x),py(w*p.x+b));c.stroke();}
+    c.strokeStyle='#5eead4'; c.lineWidth=3; c.beginPath();
+    c.moveTo(px(0),py(b)); c.lineTo(px(1),py(w+b)); c.stroke();
+    for(const p of pts){c.fillStyle='#7c9cff';c.beginPath();c.arc(px(p.x),py(p.y),4,0,7);c.fill();}
+  }
+  function loop(){
+    if(t<160){ step(); t++; }
+    else { hold++; if(hold>90) gen(); }
+    draw(); requestAnimationFrame(loop);
+  }
+  gen(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

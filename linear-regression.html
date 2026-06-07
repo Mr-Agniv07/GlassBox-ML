@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Glassbox ML · Linear Regression</title>
+<style>
+  :root{
+    --bg:#0b0f17; --panel:#121826; --panel2:#0e1320; --line:#1e2840;
+    --ink:#e7ecf5; --muted:#8a97b1; --accent:#5eead4; --accent2:#7c9cff;
+    --warn:#fbbf24; --pt:#7c9cff; --fit:#5eead4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+  .crumb{color:var(--muted);font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+  h1{margin:.2em 0 .1em;font-size:30px}
+  h2{font-size:19px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .sub{color:var(--muted);margin-top:0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px;margin:18px 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  canvas{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    width:100%;display:block;cursor:crosshair}
+  .lab{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start}
+  @media(max-width:820px){.lab{grid-template-columns:1fr}}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+  button{background:#1b243a;border:1px solid var(--line);color:var(--ink);
+    padding:9px 16px;border-radius:9px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--accent2);color:#fff}
+  button.primary{background:var(--accent);color:#06231f;border-color:var(--accent);font-weight:600}
+  button.primary:hover{filter:brightness(1.08)}
+  label.ctl{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:150px}
+  input[type=range]{accent-color:var(--accent)}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .stat .k{font-size:12px;color:var(--muted)}
+  .stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+  .scrub{margin-top:14px}
+  .scrub input{width:100%}
+  code,pre{font-family:"SF Mono",Consolas,Menlo,monospace}
+  pre{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:16px;overflow:auto;font-size:13px;line-height:1.55}
+  .formula{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:12px 16px;margin:10px 0;font-size:15px;color:#cdd8ef}
+  .tag{display:inline-block;background:#0e2b27;color:var(--accent);border:1px solid #1c4a43;
+    padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}
+  .hint{color:var(--muted);font-size:13px;margin-top:8px}
+  .ok{color:var(--accent)}
+  a{color:var(--accent2);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="crumb">Glassbox ML · Level 1 — Foundations</div>
+  <h1>Linear Regression</h1>
+  <p class="sub">Fit a straight line to data by <b>gradient descent</b> — watch it learn, step by step. No libraries. The math below is the math running on screen.</p>
+
+  <!-- 1 · INTUITION -->
+  <div class="panel">
+    <h2>🧠 Intuition</h2>
+    <p>We have a cloud of points and we believe a straight line <code>ŷ = w·x + b</code> roughly explains them.
+    The line starts flat and wrong. We measure <i>how wrong</i> (the error), figure out which way to nudge
+    the slope <code>w</code> and intercept <code>b</code> to make it <i>less</i> wrong, and take a tiny step that way.
+    Repeat a few hundred times and the line settles into the best fit. That nudge-toward-less-wrong is
+    <span class="tag">gradient descent</span> — the engine behind almost everything in ML, including XGBoost later.</p>
+  </div>
+
+  <!-- 2 · MATH -->
+  <div class="panel">
+    <h2>📐 The math</h2>
+    <p>Prediction for a point:</p>
+    <div class="formula">ŷᵢ = w·xᵢ + b</div>
+    <p>How wrong we are overall — <b>Mean Squared Error</b>:</p>
+    <div class="formula">MSE = (1/n) · Σ (ŷᵢ − yᵢ)²</div>
+    <p>Which way to nudge each knob (the <b>gradients</b> — slope of the error w.r.t. each knob):</p>
+    <div class="formula">∂MSE/∂w = (2/n) · Σ (ŷᵢ − yᵢ)·xᵢ &nbsp;&nbsp;&nbsp; ∂MSE/∂b = (2/n) · Σ (ŷᵢ − yᵢ)</div>
+    <p>The update — step downhill by a small <b>learning rate</b> η:</p>
+    <div class="formula">w ← w − η·(∂MSE/∂w) &nbsp;&nbsp;&nbsp; b ← b − η·(∂MSE/∂b)</div>
+  </div>
+
+  <!-- 3 · THE LAB -->
+  <div class="panel">
+    <h2>🎬 The lab <span style="font-size:13px;font-weight:400;color:var(--muted)">— watch it train</span></h2>
+    <div class="lab">
+      <div>
+        <canvas id="scatter" width="640" height="460"></canvas>
+        <p class="hint">Blue dots = data. <span class="ok">Teal line</span> = the model's current guess.
+          <b>Click anywhere on the plot to add a point</b> and watch the fit change.</p>
+      </div>
+      <div>
+        <canvas id="loss" width="640" height="200"></canvas>
+        <div class="stats">
+          <div class="stat"><div class="k">epoch</div><div class="v" id="s-epoch">0</div></div>
+          <div class="stat"><div class="k">MSE (error)</div><div class="v" id="s-mse">—</div></div>
+          <div class="stat"><div class="k">w (slope)</div><div class="v" id="s-w">0.000</div></div>
+          <div class="stat"><div class="k">b (intercept)</div><div class="v" id="s-b">0.000</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="primary" id="play">▶ Play</button>
+      <button id="step">⏭ Step</button>
+      <button id="reset">↺ Reset</button>
+      <button id="regen">🎲 New data</button>
+      <label class="ctl">learning rate η = <span id="lr-val">0.30</span>
+        <input type="range" id="lr" min="0.01" max="1.0" step="0.01" value="0.30" />
+      </label>
+    </div>
+    <div class="scrub">
+      <label class="ctl" style="min-width:auto">scrub through training (drag to replay any epoch)
+        <input type="range" id="scrub" min="0" max="0" step="1" value="0" />
+      </label>
+    </div>
+  </div>
+
+  <!-- 4 · CODE -->
+  <div class="panel">
+    <h2>⌨️ The code <span style="font-size:13px;font-weight:400;color:var(--muted)">— this exact function is what runs above</span></h2>
+    <pre id="code">// One step of gradient descent — pure JS, no libraries.
+function gradientStep(points, w, b, lr) {
+  const n = points.length;
+  let dw = 0, db = 0, sse = 0;
+  for (const {x, y} of points) {
+    const err = (w * x + b) - y;   // how wrong on this point
+    dw  += err * x;                // ∂MSE/∂w  (before the 2/n)
+    db  += err;                    // ∂MSE/∂b
+    sse += err * err;              // for reporting MSE
+  }
+  dw = (2 / n) * dw;
+  db = (2 / n) * db;
+  return {
+    w:   w - lr * dw,              // step the slope downhill
+    b:   b - lr * db,              // step the intercept downhill
+    mse: sse / n
+  };
+}</pre>
+    <p class="hint">That's the whole algorithm. Everything else on this page is just drawing it.</p>
+  </div>
+
+  <p class="hint" style="text-align:center"><a href="index.html">⌂ Glassbox ML home</a> ·
+  Next exhibit: <a href="logistic-regression.html">Logistic Regression →</a></p>
+
+</div>
+
+<script>
+/* ============================================================
+   Glassbox ML — Linear Regression exhibit (from scratch)
+   ============================================================ */
+
+// ---- view / data space ----
+const XMIN=0, XMAX=1, YMIN=0, YMAX=2;
+const PAD = 44;
+
+const scatter = document.getElementById('scatter');
+const sx2d = scatter.getContext('2d');
+const lossC = document.getElementById('loss');
+const lx2d = lossC.getContext('2d');
+
+let points = [];
+let latestW = 0, latestB = 0;      // the live model being trained
+let states = [];                   // snapshots: [{w,b,mse}] one per epoch
+let cur = 0;                       // which epoch we're viewing
+let playing = false;
+let lr = 0.30;
+const MAX_EPOCHS = 800;
+
+// ---- coordinate transforms (data <-> pixels) ----
+const W = scatter.width, H = scatter.height;
+const px = x => PAD + (x - XMIN) / (XMAX - XMIN) * (W - 2*PAD);
+const py = y => (H - PAD) - (y - YMIN) / (YMAX - YMIN) * (H - 2*PAD);
+const invX = p => XMIN + (p - PAD) / (W - 2*PAD) * (XMAX - XMIN);
+const invY = p => YMIN + ((H - PAD) - p) / (H - 2*PAD) * (YMAX - YMIN);
+
+// ---- gaussian noise (Box–Muller) ----
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+// ---- THE ALGORITHM (mirrors the displayed code) ----
+function gradientStep(pts, w, b, eta){
+  const n = pts.length;
+  let dw=0, db=0, sse=0;
+  for(const {x,y} of pts){
+    const err = (w*x+b) - y;
+    dw += err*x; db += err; sse += err*err;
+  }
+  dw = (2/n)*dw; db = (2/n)*db;
+  return { w: w - eta*dw, b: b - eta*db, mse: sse/n };
+}
+function mseOf(w,b){
+  if(!points.length) return 0;
+  let s=0; for(const {x,y} of points){const e=(w*x+b)-y; s+=e*e;}
+  return s/points.length;
+}
+
+// ---- data + training lifecycle ----
+function genData(){
+  points = [];
+  const tw=1.3, tb=0.35;                       // hidden "true" line
+  for(let i=0;i<35;i++){
+    const x=Math.random();
+    const y=clamp(tw*x+tb+gauss()*0.12, YMIN, YMAX);
+    points.push({x,y});
+  }
+}
+function resetTraining(){
+  latestW=0; latestB=0;
+  states=[{w:0,b:0,mse:mseOf(0,0)}];
+  cur=0; playing=false;
+  document.getElementById('play').textContent='▶ Play';
+}
+function trainOneEpoch(){
+  if(states.length>MAX_EPOCHS) return;
+  const next = gradientStep(points, latestW, latestB, lr);
+  latestW=next.w; latestB=next.b;
+  states.push(next);
+  cur = states.length-1;
+}
+
+// ---- drawing ----
+function axes(ctx,w,h){
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle='#1e2840'; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(PAD,h-PAD); ctx.lineTo(w-PAD,h-PAD);   // x axis
+  ctx.moveTo(PAD,PAD);   ctx.lineTo(PAD,h-PAD);     // y axis
+  ctx.stroke();
+}
+function drawScatter(){
+  axes(sx2d,W,H);
+  const st = states[cur];
+  // the fit line
+  sx2d.strokeStyle='#5eead4'; sx2d.lineWidth=3;
+  sx2d.beginPath();
+  sx2d.moveTo(px(XMIN), py(clamp(st.w*XMIN+st.b,-1,3)));
+  sx2d.lineTo(px(XMAX), py(clamp(st.w*XMAX+st.b,-1,3)));
+  sx2d.stroke();
+  // residual whiskers (the error being minimized)
+  sx2d.strokeStyle='rgba(251,191,36,.35)'; sx2d.lineWidth=1;
+  for(const {x,y} of points){
+    sx2d.beginPath();
+    sx2d.moveTo(px(x),py(y));
+    sx2d.lineTo(px(x),py(st.w*x+st.b));
+    sx2d.stroke();
+  }
+  // data points
+  for(const {x,y} of points){
+    sx2d.fillStyle='#7c9cff';
+    sx2d.beginPath(); sx2d.arc(px(x),py(y),4.5,0,7); sx2d.fill();
+  }
+  // labels
+  sx2d.fillStyle='#8a97b1'; sx2d.font='12px sans-serif';
+  sx2d.fillText('x', W-PAD+6, H-PAD+4);
+  sx2d.fillText('y', PAD-14, PAD-8);
+}
+function drawLoss(){
+  const w=lossC.width,h=lossC.height;
+  axes(lx2d,w,h);
+  if(states.length<2){labelLoss();return;}
+  const maxL = states[0].mse || 1;
+  const lpx = i => PAD + i/(Math.max(states.length-1,1))*(w-2*PAD);
+  const lpy = v => (h-PAD) - clamp(v/maxL,0,1)*(h-2*PAD);
+  // full curve faint
+  lx2d.strokeStyle='#2a3656'; lx2d.lineWidth=1.5; lx2d.beginPath();
+  states.forEach((s,i)=>{i?lx2d.lineTo(lpx(i),lpy(s.mse)):lx2d.moveTo(lpx(i),lpy(s.mse));});
+  lx2d.stroke();
+  // curve up to current epoch, bright
+  lx2d.strokeStyle='#fbbf24'; lx2d.lineWidth=2.5; lx2d.beginPath();
+  for(let i=0;i<=cur;i++){i?lx2d.lineTo(lpx(i),lpy(states[i].mse)):lx2d.moveTo(lpx(i),lpy(states[i].mse));}
+  lx2d.stroke();
+  // marker dot
+  lx2d.fillStyle='#fff';
+  lx2d.beginPath(); lx2d.arc(lpx(cur),lpy(states[cur].mse),4,0,7); lx2d.fill();
+  labelLoss();
+}
+function labelLoss(){
+  lx2d.fillStyle='#8a97b1'; lx2d.font='12px sans-serif';
+  lx2d.fillText('epoch →', lossC.width-PAD-46, lossC.height-PAD+18);
+  lx2d.fillText('MSE', PAD-30, PAD-6);
+}
+function updateStats(){
+  const st=states[cur];
+  document.getElementById('s-epoch').textContent=cur;
+  document.getElementById('s-mse').textContent=st.mse.toFixed(4);
+  document.getElementById('s-w').textContent=st.w.toFixed(3);
+  document.getElementById('s-b').textContent=st.b.toFixed(3);
+  const sc=document.getElementById('scrub');
+  sc.max=states.length-1;
+  if(document.activeElement!==sc) sc.value=cur;
+}
+function draw(){ drawScatter(); drawLoss(); updateStats(); }
+
+// ---- animation loop ----
+function frame(){
+  if(playing){
+    if(cur < states.length-1) cur++;          // replay recorded epochs first
+    else if(states.length<=MAX_EPOCHS) trainOneEpoch();
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+
+// ---- wiring ----
+document.getElementById('play').onclick=e=>{
+  playing=!playing; e.target.textContent=playing?'⏸ Pause':'▶ Play';
+};
+document.getElementById('step').onclick=()=>{
+  playing=false; document.getElementById('play').textContent='▶ Play';
+  if(cur<states.length-1) cur++; else trainOneEpoch();
+};
+document.getElementById('reset').onclick=()=>{resetTraining();};
+document.getElementById('regen').onclick=()=>{genData();resetTraining();};
+document.getElementById('lr').oninput=e=>{
+  lr=parseFloat(e.target.value);
+  document.getElementById('lr-val').textContent=lr.toFixed(2);
+};
+document.getElementById('scrub').oninput=e=>{
+  playing=false; document.getElementById('play').textContent='▶ Play';
+  cur=parseInt(e.target.value); draw();
+};
+scatter.onclick=e=>{
+  const r=scatter.getBoundingClientRect();
+  const xData=invX((e.clientX-r.left)*(W/r.width));
+  const yData=invY((e.clientY-r.top)*(H/r.height));
+  if(xData<XMIN||xData>XMAX||yData<YMIN||yData>YMAX) return;
+  points.push({x:xData,y:yData});
+  resetTraining();
+};
+
+// ---- boot ----
+genData();
+resetTraining();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
