@@ -2,6 +2,8 @@
 
 **Watch machine learning algorithms actually learn.**
 
+### 🔗 Live demo → [mr-agniv07.github.io/GlassBox-ML](https://mr-agniv07.github.io/GlassBox-ML/)
+
 Classic ML algorithms, implemented **from scratch** — no scikit-learn, no PyTorch — each paired with an **interactive, animated** browser exhibit. The math you read is the math running on screen. The black box, made glass.
 
 > The missing third kind of ML resource: not pure theory, not `model.fit()` — you *watch* the algorithm train, step by step.
