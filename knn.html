@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Glassbox ML · k-Nearest Neighbors</title>
+<style>
+  :root{
+    --bg:#0b0f17; --panel:#121826; --panel2:#0e1320; --line:#1e2840;
+    --ink:#e7ecf5; --muted:#8a97b1; --accent:#5eead4; --accent2:#7c9cff;
+    --c0:#7c9cff; --c1:#ff6b6b; --c2:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.65 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+  .crumb{color:var(--muted);font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+  h1{margin:.2em 0 .1em;font-size:30px}
+  h2{font-size:19px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .sub{color:var(--muted);margin-top:0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin:18px 0}
+  canvas{background:var(--panel2);border:1px solid var(--line);border-radius:10px;width:100%;display:block}
+  #field{cursor:crosshair}
+  .lab{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start}
+  @media(max-width:820px){.lab{grid-template-columns:1fr}}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+  button{background:#1b243a;border:1px solid var(--line);color:var(--ink);
+    padding:9px 16px;border-radius:9px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--accent2);color:#fff}
+  button.primary{background:var(--accent);color:#06231f;border-color:var(--accent);font-weight:600}
+  button.brush{padding:7px 12px}
+  button.brush.active{border-color:#fff;box-shadow:0 0 0 1px #fff inset}
+  label.ctl{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:170px}
+  input[type=range]{accent-color:var(--accent)}
+  .legend{display:flex;gap:16px;margin-top:8px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:middle;margin-right:5px}
+  .verdict{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+  .verdict .k{font-size:12px;color:var(--muted)}
+  .verdict .pred{font-size:26px;font-weight:800;margin-top:2px}
+  .vote{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px}
+  .vote .nm{width:58px;color:var(--muted)}
+  .track{flex:1;height:14px;background:#0b1120;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .fill{height:100%;width:0;transition:width .12s}
+  .vote .ct{width:24px;text-align:right;font-variant-numeric:tabular-nums}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .stat .sk{font-size:12px;color:var(--muted)} .stat .sv{font-size:22px;font-weight:700}
+  code,pre{font-family:"SF Mono",Consolas,Menlo,monospace}
+  pre{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;overflow:auto;font-size:13px;line-height:1.55}
+  .formula{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:10px 0;font-size:15px;color:#cdd8ef}
+  .tag{display:inline-block;background:#0e2b27;color:var(--accent);border:1px solid #1c4a43;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}
+  .hint{color:var(--muted);font-size:13px;margin-top:8px}
+  a{color:var(--accent2);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="crumb">Glassbox ML · Level 2 — Distance &amp; Geometry</div>
+  <h1>k-Nearest Neighbors</h1>
+  <p class="sub">No training at all — just remember every point, then classify a new one by asking its
+  <b>k</b> closest neighbors to vote. Move the query around and watch the neighbors light up.</p>
+
+  <!-- 1 · INTUITION -->
+  <div class="panel">
+    <h2>🧠 Intuition</h2>
+    <p>KNN is <span class="tag">lazy</span>: there's no model to fit. To classify a new point, measure how
+    far it is from every stored point, pick the <b>k</b> nearest, and take a majority vote of their labels.
+    Small <code>k</code> = jagged, sensitive boundaries (low bias, high variance); large <code>k</code> =
+    smooth, blurry boundaries (high bias, low variance). The background shading shows how the <i>entire</i>
+    plane would be classified.</p>
+  </div>
+
+  <!-- 2 · MATH -->
+  <div class="panel">
+    <h2>📐 The math</h2>
+    <p>Distance from the query <b>x</b> to each stored point <b>xᵢ</b> (Euclidean):</p>
+    <div class="formula">d(x, xᵢ) = √ Σⱼ (xⱼ − xᵢⱼ)²</div>
+    <p>Sort by distance, keep the k nearest, and predict the most common label among them:</p>
+    <div class="formula">ŷ = mode( { yᵢ : xᵢ ∈ k nearest neighbours of x } )</div>
+    <p>That's the whole algorithm — no weights, no loss, no gradient. The cost is all at <i>query</i> time.</p>
+  </div>
+
+  <!-- 3 · THE LAB -->
+  <div class="panel">
+    <h2>🎬 The lab <span style="font-size:13px;font-weight:400;color:var(--muted)">— watch the neighbors vote</span></h2>
+    <div class="lab">
+      <div>
+        <canvas id="field" width="640" height="460"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--c0)"></span>class 0</span>
+          <span><span class="dot" style="background:var(--c1)"></span>class 1</span>
+          <span><span class="dot" style="background:var(--c2)"></span>class 2</span>
+          <span>◇ query point · lines → its k neighbors</span>
+        </div>
+        <p class="hint"><b>Move your mouse over the plot</b> to place the query point.
+          Background = how KNN would label every spot. <b>Click</b> to drop a new point of the selected class.</p>
+      </div>
+      <div>
+        <div class="verdict">
+          <div class="k">query is classified as</div>
+          <div class="pred" id="pred">—</div>
+        </div>
+        <div class="vote"><span class="nm" style="color:var(--c0)">class 0</span>
+          <div class="track"><div class="fill" id="bar0" style="background:var(--c0)"></div></div><span class="ct" id="ct0">0</span></div>
+        <div class="vote"><span class="nm" style="color:var(--c1)">class 1</span>
+          <div class="track"><div class="fill" id="bar1" style="background:var(--c1)"></div></div><span class="ct" id="ct1">0</span></div>
+        <div class="vote"><span class="nm" style="color:var(--c2)">class 2</span>
+          <div class="track"><div class="fill" id="bar2" style="background:var(--c2)"></div></div><span class="ct" id="ct2">0</span></div>
+        <div class="stats">
+          <div class="stat"><div class="sk">k (neighbors)</div><div class="sv" id="s-k">7</div></div>
+          <div class="stat"><div class="sk">stored points</div><div class="sv" id="s-n">0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="primary" id="play">⏸ Pause tour</button>
+      <button id="regen">🎲 New data</button>
+      <label class="ctl">k = <span id="k-val">7</span> neighbors
+        <input type="range" id="k" min="1" max="25" step="1" value="7" />
+      </label>
+      <span style="font-size:12px;color:var(--muted)">add as:</span>
+      <button class="brush active" id="b0" style="color:var(--c0)">● 0</button>
+      <button class="brush" id="b1" style="color:var(--c1)">● 1</button>
+      <button class="brush" id="b2" style="color:var(--c2)">● 2</button>
+    </div>
+  </div>
+
+  <!-- 4 · CODE -->
+  <div class="panel">
+    <h2>⌨️ The code <span style="font-size:13px;font-weight:400;color:var(--muted)">— this exact function is what runs above</span></h2>
+    <pre id="code">// Classify a query point by majority vote of its k nearest neighbours.
+function knnPredict(points, qx, qy, k) {
+  // distance from the query to every stored point
+  const d = points.map((p, i) => ({
+    i, dist: Math.hypot(p.x1 - qx, p.x2 - qy)
+  }));
+  d.sort((a, b) => a.dist - b.dist);          // nearest first
+  const idx = d.slice(0, k).map(o => o.i);    // the k nearest
+
+  const votes = [0, 0, 0];                    // tally their labels
+  idx.forEach(i => votes[points[i].y]++);
+
+  let label = 0;                              // the winner
+  for (let c = 1; c < votes.length; c++)
+    if (votes[c] > votes[label]) label = c;
+
+  return { label, idx, votes };
+}</pre>
+    <p class="hint">No <code>fit()</code> loop anywhere — the work happens entirely at query time.</p>
+  </div>
+
+  <p class="hint" style="text-align:center"><a href="index.html">⌂ Glassbox ML home</a> ·
+  Prev: <a href="logistic-regression.html">← Logistic Regression</a> · Next: k-Means (soon)</p>
+
+</div>
+
+<script>
+/* ============================================================
+   Glassbox ML — k-Nearest Neighbors exhibit (from scratch)
+   ============================================================ */
+const XMIN=-5, XMAX=5, YMIN=-5, YMAX=5, PAD=24, CELL=16;
+const CLASS_COLORS=['#7c9cff','#ff6b6b','#fbbf24'];
+
+const field=document.getElementById('field'), ctx=field.getContext('2d');
+const W=field.width, H=field.height;
+// offscreen canvas caches the region shading (only recomputed on changes)
+const region=document.createElement('canvas'); region.width=W; region.height=H;
+const rctx=region.getContext('2d');
+
+let points=[];
+let k=7;
+let brush=0;
+let query={x1:0,x2:0};
+let playing=true;
+let t=0;
+
+const px=x=>PAD+(x-XMIN)/(XMAX-XMIN)*(W-2*PAD);
+const py=y=>(H-PAD)-(y-YMIN)/(YMAX-YMIN)*(H-2*PAD);
+const invX=p=>XMIN+(p-PAD)/(W-2*PAD)*(XMAX-XMIN);
+const invY=p=>YMIN+((H-PAD)-p)/(H-2*PAD)*(YMAX-YMIN);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+// ---- THE ALGORITHM (mirrors the displayed code) ----
+function knnPredict(qx,qy,kk){
+  const d=points.map((p,i)=>({i,dist:Math.hypot(p.x1-qx,p.x2-qy)}));
+  d.sort((a,b)=>a.dist-b.dist);
+  const idx=d.slice(0,kk).map(o=>o.i);
+  const votes=[0,0,0];
+  idx.forEach(i=>votes[points[i].y]++);
+  let label=0;
+  for(let c=1;c<votes.length;c++) if(votes[c]>votes[label]) label=c;
+  return {label,idx,votes};
+}
+
+// ---- data ----
+function genData(){
+  points=[];
+  const centers=[[-2.5,-2.5],[2.5,2.5],[-2.5,2.5]];
+  for(let cls=0;cls<3;cls++){
+    for(let i=0;i<18;i++){
+      points.push({
+        x1:clamp(centers[cls][0]+gauss()*1.0,XMIN,XMAX),
+        x2:clamp(centers[cls][1]+gauss()*1.0,YMIN,YMAX),
+        y:cls
+      });
+    }
+  }
+}
+
+// ---- region shading (cached) ----
+function computeRegion(){
+  rctx.clearRect(0,0,W,H);
+  rctx.globalAlpha=0.30;
+  for(let gx=PAD;gx<W-PAD;gx+=CELL){
+    for(let gy=PAD;gy<H-PAD;gy+=CELL){
+      const lab=knnPredict(invX(gx+CELL/2),invY(gy+CELL/2),k).label;
+      rctx.fillStyle=CLASS_COLORS[lab];
+      rctx.fillRect(gx,gy,Math.min(CELL,W-PAD-gx),Math.min(CELL,H-PAD-gy));
+    }
+  }
+  rctx.globalAlpha=1;
+}
+
+// ---- drawing ----
+function draw(){
+  const res=knnPredict(query.x1,query.x2,k);
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(region,0,0);
+  // border of plot area
+  ctx.strokeStyle='#1e2840'; ctx.lineWidth=1;
+  ctx.strokeRect(PAD,PAD,W-2*PAD,H-2*PAD);
+
+  // lines query -> neighbors
+  ctx.strokeStyle='rgba(231,236,245,.5)'; ctx.lineWidth=1.2;
+  res.idx.forEach(i=>{
+    ctx.beginPath();
+    ctx.moveTo(px(query.x1),py(query.x2));
+    ctx.lineTo(px(points[i].x1),py(points[i].x2));
+    ctx.stroke();
+  });
+
+  // all points
+  for(const p of points){
+    ctx.fillStyle=CLASS_COLORS[p.y]; ctx.strokeStyle='#0b0f17'; ctx.lineWidth=1.3;
+    ctx.beginPath(); ctx.arc(px(p.x1),py(p.x2),5,0,7); ctx.fill(); ctx.stroke();
+  }
+  // ring the k neighbors
+  res.idx.forEach(i=>{
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(px(points[i].x1),py(points[i].x2),9,0,7); ctx.stroke();
+  });
+
+  // query marker (filled with predicted class color)
+  const qx=px(query.x1), qy=py(query.x2);
+  ctx.fillStyle=CLASS_COLORS[res.label]; ctx.strokeStyle='#fff'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  ctx.moveTo(qx,qy-9); ctx.lineTo(qx+9,qy); ctx.lineTo(qx,qy+9); ctx.lineTo(qx-9,qy);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  updateStats(res);
+}
+function updateStats(res){
+  document.getElementById('pred').textContent='class '+res.label;
+  document.getElementById('pred').style.color=CLASS_COLORS[res.label];
+  for(let c=0;c<3;c++){
+    document.getElementById('ct'+c).textContent=res.votes[c];
+    document.getElementById('bar'+c).style.width=(res.votes[c]/k*100)+'%';
+  }
+  document.getElementById('s-k').textContent=k;
+  document.getElementById('s-n').textContent=points.length;
+}
+
+// ---- auto-tour loop ----
+function frame(){
+  if(playing){
+    t+=0.012;
+    query={x1:3.2*Math.cos(t), x2:3.0*Math.sin(1.3*t)};
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+
+// ---- wiring ----
+document.getElementById('play').onclick=e=>{
+  playing=!playing; e.target.textContent=playing?'⏸ Pause tour':'▶ Auto-tour';
+};
+document.getElementById('regen').onclick=()=>{genData();computeRegion();draw();};
+document.getElementById('k').oninput=e=>{
+  k=parseInt(e.target.value); document.getElementById('k-val').textContent=k;
+  computeRegion(); draw();
+};
+function setBrush(b){ brush=b; for(let i=0;i<3;i++)
+  document.getElementById('b'+i).classList.toggle('active',i===b); }
+document.getElementById('b0').onclick=()=>setBrush(0);
+document.getElementById('b1').onclick=()=>setBrush(1);
+document.getElementById('b2').onclick=()=>setBrush(2);
+
+field.onmousemove=e=>{
+  const r=field.getBoundingClientRect();
+  query={x1:invX((e.clientX-r.left)*(W/r.width)), x2:invY((e.clientY-r.top)*(H/r.height))};
+  playing=false; document.getElementById('play').textContent='▶ Auto-tour';
+  draw();
+};
+field.onclick=e=>{
+  const r=field.getBoundingClientRect();
+  const x1=invX((e.clientX-r.left)*(W/r.width)), x2=invY((e.clientY-r.top)*(H/r.height));
+  if(x1<XMIN||x1>XMAX||x2<YMIN||x2>YMAX) return;
+  points.push({x1,x2,y:brush});
+  computeRegion(); draw();
+};
+
+// ---- boot ----
+genData(); computeRegion(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
